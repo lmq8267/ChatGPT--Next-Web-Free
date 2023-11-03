@@ -3,7 +3,7 @@
 
 <h1 align="center">ChatGPT Next Web LangChain</h1>
 
-一键免费部署你的跨平台私人 ChatGPT 应用（基于 LangChain 实现插件功能）。
+一键免费部署你的跨平台私人 ChatGPT 应用（基于LangChain 实现插件功能）。
 
 [![Web][Web-image]][web-url]
 [![Windows][Windows-image]][download-url]
