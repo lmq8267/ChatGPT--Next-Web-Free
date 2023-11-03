@@ -23,10 +23,27 @@ export interface LLMConfig {
   frequency_penalty?: number;
 }
 
+export interface LLMAgentConfig {
+  maxIterations: number;
+  returnIntermediateSteps: boolean;
+  useTools?: (string | undefined)[];
+}
+
 export interface ChatOptions {
   messages: RequestMessage[];
   config: LLMConfig;
+  onToolUpdate?: (toolName: string, toolInput: string) => void;
+  onUpdate?: (message: string, chunk: string) => void;
+  onFinish: (message: string) => void;
+  onError?: (err: Error) => void;
+  onController?: (controller: AbortController) => void;
+}
 
+export interface AgentChatOptions {
+  messages: RequestMessage[];
+  config: LLMConfig;
+  agentConfig: LLMAgentConfig;
+  onToolUpdate?: (toolName: string, toolInput: string) => void;
   onUpdate?: (message: string, chunk: string) => void;
   onFinish: (message: string) => void;
   onError?: (err: Error) => void;
@@ -45,6 +62,7 @@ export interface LLMModel {
 
 export abstract class LLMApi {
   abstract chat(options: ChatOptions): Promise<void>;
+  abstract toolAgentChat(options: AgentChatOptions): Promise<void>;
   abstract usage(): Promise<LLMUsage>;
   abstract models(): Promise<LLMModel[]>;
 }
@@ -68,6 +86,12 @@ interface ChatProvider {
 
   chat: () => void;
   usage: () => void;
+}
+
+export abstract class ToolApi {
+  abstract call(input: string): Promise<string>;
+  abstract name: string;
+  abstract description: string;
 }
 
 export class ClientApi {
