@@ -22,6 +22,7 @@ import { DallEAPIWrapper } from "@/app/api/langchain-tools/dalle_image_generator
 import { BaiduSearch } from "@/app/api/langchain-tools/baidu_search";
 import { GoogleSearch } from "@/app/api/langchain-tools/google_search";
 import { StableDiffusionWrapper } from "@/app/api/langchain-tools/stable_diffusion_image_generator";
+import { ArxivAPIWrapper } from "@/app/api/langchain-tools/arxiv";
 
 const serverConfig = getServerSideConfig();
 
@@ -95,8 +96,8 @@ async function handle(req: NextRequest) {
 
     const handler = BaseCallbackHandler.fromMethods({
       async handleLLMNewToken(token: string) {
+        // console.log("[Token]", token);
         if (token) {
-          console.log("[Token]", token);
           var response = new ResponseBody();
           response.message = token;
           await writer.ready;
@@ -106,7 +107,7 @@ async function handle(req: NextRequest) {
         }
       },
       async handleChainError(err, runId, parentRunId, tags) {
-        console.log(err, "writer error");
+        console.log("[handleChainError]", err, "writer error");
         var response = new ResponseBody();
         response.isSuccess = false;
         response.message = err;
@@ -117,6 +118,7 @@ async function handle(req: NextRequest) {
         await writer.close();
       },
       async handleChainEnd(outputs, runId, parentRunId, tags) {
+        console.log("[handleChainEnd]");
         await writer.ready;
         await writer.close();
       },
@@ -125,7 +127,7 @@ async function handle(req: NextRequest) {
         // await writer.close();
       },
       async handleLLMError(e: Error) {
-        console.log(e, "writer error");
+        console.log("[handleLLMError]", e, "writer error");
         var response = new ResponseBody();
         response.isSuccess = false;
         response.message = e.message;
@@ -143,16 +145,11 @@ async function handle(req: NextRequest) {
       },
       async handleAgentAction(action) {
         try {
-          console.log(
-            "agent (llm)",
-            `tool: ${action.tool} toolInput: ${action.toolInput}`,
-            { action },
-          );
+          console.log("[handleAgentAction]", action.tool);
           if (!reqBody.returnIntermediateSteps) return;
           var response = new ResponseBody();
           response.isToolMessage = true;
-          let toolInput = <ToolInput>(<unknown>action.toolInput);
-          response.message = toolInput.input;
+          response.message = JSON.stringify(action.toolInput);
           response.toolName = action.tool;
           await writer.ready;
           await writer.write(
@@ -171,7 +168,13 @@ async function handle(req: NextRequest) {
         }
       },
       handleToolStart(tool, input) {
-        console.log("handleToolStart", { tool, input });
+        console.log("[handleToolStart]", { tool });
+      },
+      async handleToolEnd(output, runId, parentRunId, tags) {
+        console.log("[handleToolEnd]", { output, runId, parentRunId, tags });
+      },
+      handleAgentEnd(action, runId, parentRunId, tags) {
+        console.log("[handleAgentEnd]");
       },
     });
 
@@ -228,14 +231,28 @@ async function handle(req: NextRequest) {
     ];
     const webBrowserTool = new WebBrowser({ model, embeddings });
     const calculatorTool = new Calculator();
-    const dallEAPITool = new DallEAPIWrapper(apiKey, baseUrl);
+    const dallEAPITool = new DallEAPIWrapper(
+      apiKey,
+      baseUrl,
+      async (data: string) => {
+        var response = new ResponseBody();
+        response.message = data;
+        await writer.ready;
+        await writer.write(
+          encoder.encode(`data: ${JSON.stringify(response)}\n\n`),
+        );
+      },
+    );
+    dallEAPITool.returnDirect = true;
     const stableDiffusionTool = new StableDiffusionWrapper();
+    const arxivAPITool = new ArxivAPIWrapper();
     if (useTools.includes("web-search")) tools.push(searchTool);
     if (useTools.includes(webBrowserTool.name)) tools.push(webBrowserTool);
     if (useTools.includes(calculatorTool.name)) tools.push(calculatorTool);
     if (useTools.includes(dallEAPITool.name)) tools.push(dallEAPITool);
     if (useTools.includes(stableDiffusionTool.name))
       tools.push(stableDiffusionTool);
+    if (useTools.includes(arxivAPITool.name)) tools.push(arxivAPITool);
 
     useTools.forEach((toolName) => {
       if (toolName) {
