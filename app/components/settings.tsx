@@ -50,7 +50,13 @@ import Locale, {
 } from "../locales";
 import { copyToClipboard } from "../utils";
 import Link from "next/link";
-import { Path, RELEASE_URL, STORAGE_KEY, UPDATE_URL } from "../constant";
+import {
+  OPENAI_BASE_URL,
+  Path,
+  RELEASE_URL,
+  STORAGE_KEY,
+  UPDATE_URL,
+} from "../constant";
 import { Prompt, SearchService, usePromptStore } from "../store/prompt";
 import { ErrorBoundary } from "./error";
 import { InputRange } from "./input-range";
@@ -59,7 +65,6 @@ import { Avatar, AvatarPicker } from "./emoji";
 import { getClientConfig } from "../config/client";
 import { useSyncStore } from "../store/sync";
 import { nanoid } from "nanoid";
-import { PluginConfigList } from "./plugin-config";
 import { useMaskStore } from "../store/mask";
 import { ProviderType } from "../utils/cloud";
 
@@ -572,13 +577,19 @@ export function Settings() {
     console.log("[Update] remote version ", updateStore.remoteVersion);
   }
 
+  const accessStore = useAccessStore();
+  const shouldHideBalanceQuery = useMemo(() => {
+    const isOpenAiUrl = accessStore.openaiUrl.includes(OPENAI_BASE_URL);
+    return accessStore.hideBalanceQuery || isOpenAiUrl;
+  }, [accessStore.hideBalanceQuery, accessStore.openaiUrl]);
+
   const usage = {
     used: updateStore.used,
     subscription: updateStore.subscription,
   };
   const [loadingUsage, setLoadingUsage] = useState(false);
   function checkUsage(force = false) {
-    if (accessStore.hideBalanceQuery) {
+    if (shouldHideBalanceQuery) {
       return;
     }
 
@@ -588,7 +599,6 @@ export function Settings() {
     });
   }
 
-  const accessStore = useAccessStore();
   const enabledAccessControl = useMemo(
     () => accessStore.enabledAccessControl(),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -878,7 +888,9 @@ export function Settings() {
                 type="text"
                 placeholder={Locale.Settings.AccessCode.Placeholder}
                 onChange={(e) => {
-                  accessStore.updateCode(e.currentTarget.value);
+                  accessStore.update(
+                    (access) => (access.accessCode = e.currentTarget.value),
+                  );
                 }}
               />
             </ListItem>
@@ -897,7 +909,9 @@ export function Settings() {
                   value={accessStore.openaiUrl}
                   placeholder="https://api.openai.com/"
                   onChange={(e) =>
-                    accessStore.updateOpenAiUrl(e.currentTarget.value)
+                    accessStore.update(
+                      (access) => (access.openaiUrl = e.currentTarget.value),
+                    )
                   }
                 ></input>
               </ListItem>
@@ -910,14 +924,16 @@ export function Settings() {
                   type="text"
                   placeholder={Locale.Settings.Token.Placeholder}
                   onChange={(e) => {
-                    accessStore.updateToken(e.currentTarget.value);
+                    accessStore.update(
+                      (access) => (access.token = e.currentTarget.value),
+                    );
                   }}
                 />
               </ListItem>
             </>
           ) : null}
 
-          {!accessStore.hideBalanceQuery ? (
+          {!shouldHideBalanceQuery ? (
             <ListItem
               title={Locale.Settings.Usage.Title}
               subTitle={
@@ -974,17 +990,6 @@ export function Settings() {
         {shouldShowPromptModal && (
           <UserPromptModal onClose={() => setShowPromptModal(false)} />
         )}
-
-        <List>
-          <PluginConfigList
-            pluginConfig={config.pluginConfig}
-            updateConfig={(updater) => {
-              const pluginConfig = { ...config.pluginConfig };
-              updater(pluginConfig);
-              config.update((config) => (config.pluginConfig = pluginConfig));
-            }}
-          />
-        </List>
 
         <DangerItems />
       </div>

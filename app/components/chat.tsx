@@ -27,8 +27,6 @@ import PinIcon from "../icons/pin.svg";
 import EditIcon from "../icons/rename.svg";
 import ConfirmIcon from "../icons/confirm.svg";
 import CancelIcon from "../icons/cancel.svg";
-import EnablePluginIcon from "../icons/plugin_enable.svg";
-import DisablePluginIcon from "../icons/plugin_disable.svg";
 
 import LightIcon from "../icons/light.svg";
 import DarkIcon from "../icons/dark.svg";
@@ -36,7 +34,6 @@ import AutoIcon from "../icons/auto.svg";
 import BottomIcon from "../icons/bottom.svg";
 import StopIcon from "../icons/pause.svg";
 import RobotIcon from "../icons/robot.svg";
-import CheckmarkIcon from "../icons/checkmark.svg";
 
 import {
   ChatMessage,
@@ -76,11 +73,10 @@ import {
   showPrompt,
   showToast,
 } from "./ui-lib";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   CHAT_PAGE_SIZE,
   LAST_INPUT_KEY,
-  MAX_RENDER_MSG_COUNT,
   Path,
   REQUEST_TIMEOUT_MS,
   UNFINISHED_INPUT,
@@ -417,14 +413,6 @@ export function ChatActions(props: {
   const navigate = useNavigate();
   const chatStore = useChatStore();
 
-  // switch Plugins
-  const usePlugins = chatStore.currentSession().mask.usePlugins;
-  function switchUsePlugins() {
-    chatStore.updateCurrentSession((session) => {
-      session.mask.usePlugins = !session.mask.usePlugins;
-    });
-  }
-
   // switch themes
   const theme = config.theme;
   function nextTheme() {
@@ -453,116 +441,97 @@ export function ChatActions(props: {
 
   return (
     <div className={styles["chat-input-actions"]}>
-      <div>
-        {couldStop && (
-          <ChatAction
-            onClick={stopAll}
-            text={Locale.Chat.InputActions.Stop}
-            icon={<StopIcon />}
-          />
-        )}
-        {!props.hitBottom && (
-          <ChatAction
-            onClick={props.scrollToBottom}
-            text={Locale.Chat.InputActions.ToBottom}
-            icon={<BottomIcon />}
-          />
-        )}
-        {props.hitBottom && (
-          <ChatAction
-            onClick={props.showPromptModal}
-            text={Locale.Chat.InputActions.Settings}
-            icon={<SettingsIcon />}
-          />
-        )}
-
+      {couldStop && (
         <ChatAction
-          onClick={nextTheme}
-          text={Locale.Chat.InputActions.Theme[theme]}
-          icon={
-            <>
-              {theme === Theme.Auto ? (
-                <AutoIcon />
-              ) : theme === Theme.Light ? (
-                <LightIcon />
-              ) : theme === Theme.Dark ? (
-                <DarkIcon />
-              ) : null}
-            </>
-          }
+          onClick={stopAll}
+          text={Locale.Chat.InputActions.Stop}
+          icon={<StopIcon />}
         />
-
+      )}
+      {!props.hitBottom && (
         <ChatAction
-          onClick={props.showPromptHints}
-          text={Locale.Chat.InputActions.Prompt}
-          icon={<PromptIcon />}
+          onClick={props.scrollToBottom}
+          text={Locale.Chat.InputActions.ToBottom}
+          icon={<BottomIcon />}
         />
-
+      )}
+      {props.hitBottom && (
         <ChatAction
-          onClick={() => {
-            navigate(Path.Masks);
-          }}
-          text={Locale.Chat.InputActions.Masks}
-          icon={<MaskIcon />}
+          onClick={props.showPromptModal}
+          text={Locale.Chat.InputActions.Settings}
+          icon={<SettingsIcon />}
         />
+      )}
 
-        <ChatAction
-          onClick={() => setShowModelSelector(true)}
-          text={currentModel}
-          icon={<RobotIcon />}
-        />
+      <ChatAction
+        onClick={nextTheme}
+        text={Locale.Chat.InputActions.Theme[theme]}
+        icon={
+          <>
+            {theme === Theme.Auto ? (
+              <AutoIcon />
+            ) : theme === Theme.Light ? (
+              <LightIcon />
+            ) : theme === Theme.Dark ? (
+              <DarkIcon />
+            ) : null}
+          </>
+        }
+      />
 
-        {config.pluginConfig.enable &&
-          /^gpt(?!.*03\d{2}$).*$/.test(currentModel) && (
-            <ChatAction
-              onClick={switchUsePlugins}
-              text={
-                usePlugins
-                  ? Locale.Chat.InputActions.DisablePlugins
-                  : Locale.Chat.InputActions.EnablePlugins
-              }
-              icon={usePlugins ? <EnablePluginIcon /> : <DisablePluginIcon />}
-            />
-          )}
+      <ChatAction
+        onClick={props.showPromptHints}
+        text={Locale.Chat.InputActions.Prompt}
+        icon={<PromptIcon />}
+      />
 
-        {showModelSelector && (
-          <Selector
-            defaultSelectedValue={currentModel}
-            items={models.map((m) => ({
-              title: m,
-              value: m,
-            }))}
-            onClose={() => setShowModelSelector(false)}
-            onSelection={(s) => {
-              if (s.length === 0) return;
-              chatStore.updateCurrentSession((session) => {
-                session.mask.modelConfig.model = s[0] as ModelType;
-                session.mask.syncGlobalConfig = false;
-                session.mask.usePlugins = /^gpt(?!.*03\d{2}$).*$/.test(
-                  session.mask.modelConfig.model,
-                );
-              });
-              showToast(s[0]);
-            }}
-          />
-        )}
-      </div>
-      <div>
-        <ChatAction
-          text={Locale.Chat.InputActions.Clear}
-          icon={<BreakIcon />}
-          onClick={() => {
+      <ChatAction
+        onClick={() => {
+          navigate(Path.Masks);
+        }}
+        text={Locale.Chat.InputActions.Masks}
+        icon={<MaskIcon />}
+      />
+
+      <ChatAction
+        text={Locale.Chat.InputActions.Clear}
+        icon={<BreakIcon />}
+        onClick={() => {
+          chatStore.updateCurrentSession((session) => {
+            if (session.clearContextIndex === session.messages.length) {
+              session.clearContextIndex = undefined;
+            } else {
+              session.clearContextIndex = session.messages.length;
+              session.memoryPrompt = ""; // will clear memory
+            }
+          });
+        }}
+      />
+
+      <ChatAction
+        onClick={() => setShowModelSelector(true)}
+        text={currentModel}
+        icon={<RobotIcon />}
+      />
+
+      {showModelSelector && (
+        <Selector
+          defaultSelectedValue={currentModel}
+          items={models.map((m) => ({
+            title: m,
+            value: m,
+          }))}
+          onClose={() => setShowModelSelector(false)}
+          onSelection={(s) => {
+            if (s.length === 0) return;
             chatStore.updateCurrentSession((session) => {
-              if (session.clearContextIndex === session.messages.length) {
-                session.clearContextIndex = undefined;
-              } else {
-                session.clearContextIndex = session.messages.length;
-                session.memoryPrompt = ""; // will clear memory
-              }
+              session.mask.modelConfig.model = s[0] as ModelType;
+              session.mask.syncGlobalConfig = false;
             });
+            showToast(s[0]);
           }}
         />
-      </div>
+      )}
     </div>
   );
 }
@@ -1006,14 +975,17 @@ function _Chat() {
       doSubmit(text);
     },
     code: (text) => {
+      if (accessStore.disableFastLink) return;
       console.log("[Command] got code from url: ", text);
       showConfirm(Locale.URLCommand.Code + `code = ${text}`).then((res) => {
         if (res) {
-          accessStore.updateCode(text);
+          accessStore.update((access) => (access.accessCode = text));
         }
       });
     },
     settings: (text) => {
+      if (accessStore.disableFastLink) return;
+
       try {
         const payload = JSON.parse(text) as {
           key?: string;
@@ -1029,10 +1001,10 @@ function _Chat() {
           ).then((res) => {
             if (!res) return;
             if (payload.key) {
-              accessStore.updateToken(payload.key);
+              accessStore.update((access) => (access.token = payload.key!));
             }
             if (payload.url) {
-              accessStore.updateOpenAiUrl(payload.url);
+              accessStore.update((access) => (access.openaiUrl = payload.url!));
             }
           });
         }
@@ -1234,27 +1206,6 @@ function _Chat() {
                       </div>
                     )}
                   </div>
-                  {!isUser &&
-                    message.toolMessages &&
-                    message.toolMessages.map((tool, index) => (
-                      <div
-                        className={styles["chat-message-tools-status"]}
-                        key={index}
-                      >
-                        <div className={styles["chat-message-tools-name"]}>
-                          <CheckmarkIcon
-                            className={styles["chat-message-checkmark"]}
-                          />
-                          {tool.toolName}:
-                          <code
-                            className={styles["chat-message-tools-details"]}
-                          >
-                            {tool.toolInput}
-                          </code>
-                        </div>
-                      </div>
-                    ))}
-
                   {showTyping && (
                     <div className={styles["chat-message-status"]}>
                       {Locale.Chat.Typing}

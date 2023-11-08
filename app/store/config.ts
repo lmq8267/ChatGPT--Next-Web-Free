@@ -58,18 +58,11 @@ export const DEFAULT_CONFIG = {
     enableInjectSystemPrompts: true,
     template: DEFAULT_INPUT_TEMPLATE,
   },
-
-  pluginConfig: {
-    enable: true,
-    maxIterations: 10,
-    returnIntermediateSteps: true,
-  },
 };
 
 export type ChatConfig = typeof DEFAULT_CONFIG;
 
 export type ModelConfig = ChatConfig["modelConfig"];
-export type PluginConfig = ChatConfig["pluginConfig"];
 
 export function limitNumber(
   x: number,
@@ -140,7 +133,9 @@ export const useAppConfig = createPersistStore(
         .customModels.split(",")
         .filter((v) => !!v && v.length > 0)
         .map((m) => ({ name: m, available: true }));
-      return get().models.concat(customModels);
+      const allModels = get().models.concat(customModels);
+      allModels.sort((a, b) => (a.name < b.name ? -1 : 1));
+      return allModels;
     },
   }),
   {

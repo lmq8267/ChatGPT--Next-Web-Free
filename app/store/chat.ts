@@ -7,6 +7,7 @@ import { createEmptyMask, Mask } from "./mask";
 import {
   DEFAULT_INPUT_TEMPLATE,
   DEFAULT_SYSTEM_TEMPLATE,
+  KnowledgeCutOffDate,
   StoreKey,
   SUMMARIZE_MODEL,
 } from "../constant";
@@ -15,17 +16,10 @@ import { ChatControllerPool } from "../client/controller";
 import { prettyObject } from "../utils/format";
 import { estimateTokenLength } from "../utils/token";
 import { nanoid } from "nanoid";
-import { Plugin, usePluginStore } from "../store/plugin";
-
-export interface ChatToolMessage {
-  toolName: string;
-  toolInput?: string;
-}
 import { createPersistStore } from "../utils/store";
 
 export type ChatMessage = RequestMessage & {
   date: string;
-  toolMessages?: ChatToolMessage[];
   streaming?: boolean;
   isError?: boolean;
   id: string;
@@ -36,7 +30,6 @@ export function createMessage(override: Partial<ChatMessage>): ChatMessage {
   return {
     id: nanoid(),
     date: new Date().toLocaleString(),
-    toolMessages: new Array<ChatToolMessage>(),
     role: "user",
     content: "",
     ...override,
@@ -124,7 +117,11 @@ function countMessages(msgs: ChatMessage[]) {
 }
 
 function fillTemplateWith(input: string, modelConfig: ModelConfig) {
+  let cutoff =
+    KnowledgeCutOffDate[modelConfig.model] ?? KnowledgeCutOffDate.default;
+
   const vars = {
+    cutoff,
     model: modelConfig.model,
     time: new Date().toLocaleString(),
     lang: getLang(),
@@ -312,7 +309,6 @@ export const useChatStore = createPersistStore(
           role: "assistant",
           streaming: true,
           model: modelConfig.model,
-          toolMessages: [],
         });
 
         // get recent messages
@@ -320,151 +316,69 @@ export const useChatStore = createPersistStore(
         const sendMessages = recentMessages.concat(userMessage);
         const messageIndex = get().currentSession().messages.length + 1;
 
-        const config = useAppConfig.getState();
-        const pluginConfig = useAppConfig.getState().pluginConfig;
-        const pluginStore = usePluginStore.getState();
-        const allPlugins = pluginStore
-          .getAll()
-          .filter(
-            (m) =>
-              (!getLang() ||
-                m.lang === (getLang() == "cn" ? getLang() : "en")) &&
-              m.enable,
-          );
-
         // save user's and bot's message
         get().updateCurrentSession((session) => {
           const savedUserMessage = {
             ...userMessage,
             content,
           };
-          session.messages.push(savedUserMessage);
-          session.messages.push(botMessage);
+          session.messages = session.messages.concat([
+            savedUserMessage,
+            botMessage,
+          ]);
         });
 
-        if (
-          config.pluginConfig.enable &&
-          session.mask.usePlugins &&
-          allPlugins.length > 0
-        ) {
-          console.log("[ToolAgent] start");
-          const pluginToolNames = allPlugins.map((m) => m.toolName);
-          api.llm.toolAgentChat({
-            messages: sendMessages,
-            config: { ...modelConfig, stream: true },
-            agentConfig: { ...pluginConfig, useTools: pluginToolNames },
-            onUpdate(message) {
-              botMessage.streaming = true;
-              if (message) {
-                botMessage.content = message;
-              }
-              get().updateCurrentSession((session) => {
-                session.messages = session.messages.concat();
+        // make request
+        api.llm.chat({
+          messages: sendMessages,
+          config: { ...modelConfig, stream: true },
+          onUpdate(message) {
+            botMessage.streaming = true;
+            if (message) {
+              botMessage.content = message;
+            }
+            get().updateCurrentSession((session) => {
+              session.messages = session.messages.concat();
+            });
+          },
+          onFinish(message) {
+            botMessage.streaming = false;
+            if (message) {
+              botMessage.content = message;
+              get().onNewMessage(botMessage);
+            }
+            ChatControllerPool.remove(session.id, botMessage.id);
+          },
+          onError(error) {
+            const isAborted = error.message.includes("aborted");
+            botMessage.content +=
+              "\n\n" +
+              prettyObject({
+                error: true,
+                message: error.message,
               });
-            },
-            onToolUpdate(toolName, toolInput) {
-              botMessage.streaming = true;
-              if (toolName && toolInput) {
-                botMessage.toolMessages!.push({
-                  toolName,
-                  toolInput,
-                });
-              }
-              get().updateCurrentSession((session) => {
-                session.messages = session.messages.concat();
-              });
-            },
-            onFinish(message) {
-              botMessage.streaming = false;
-              if (message) {
-                botMessage.content = message;
-                get().onNewMessage(botMessage);
-              }
-              ChatControllerPool.remove(session.id, botMessage.id);
-            },
-            onError(error) {
-              const isAborted = error.message.includes("aborted");
-              botMessage.content +=
-                "\n\n" +
-                prettyObject({
-                  error: true,
-                  message: error.message,
-                });
-              botMessage.streaming = false;
-              userMessage.isError = !isAborted;
-              botMessage.isError = !isAborted;
-              get().updateCurrentSession((session) => {
-                session.messages = session.messages.concat();
-              });
-              ChatControllerPool.remove(
-                session.id,
-                botMessage.id ?? messageIndex,
-              );
+            botMessage.streaming = false;
+            userMessage.isError = !isAborted;
+            botMessage.isError = !isAborted;
+            get().updateCurrentSession((session) => {
+              session.messages = session.messages.concat();
+            });
+            ChatControllerPool.remove(
+              session.id,
+              botMessage.id ?? messageIndex,
+            );
 
-              console.error("[Chat] failed ", error);
-            },
-            onController(controller) {
-              // collect controller for stop/retry
-              ChatControllerPool.addController(
-                session.id,
-                botMessage.id ?? messageIndex,
-                controller,
-              );
-            },
-          });
-        } else {
-          // make request
-          api.llm.chat({
-            messages: sendMessages,
-            config: { ...modelConfig, stream: true },
-            onUpdate(message) {
-              botMessage.streaming = true;
-              if (message) {
-                botMessage.content = message;
-              }
-              get().updateCurrentSession((session) => {
-                session.messages = session.messages.concat();
-              });
-            },
-            onFinish(message) {
-              botMessage.streaming = false;
-              if (message) {
-                botMessage.content = message;
-                get().onNewMessage(botMessage);
-              }
-              ChatControllerPool.remove(session.id, botMessage.id);
-            },
-            onError(error) {
-              const isAborted = error.message.includes("aborted");
-              botMessage.content +=
-                "\n\n" +
-                prettyObject({
-                  error: true,
-                  message: error.message,
-                });
-              botMessage.streaming = false;
-              userMessage.isError = !isAborted;
-              botMessage.isError = !isAborted;
-              get().updateCurrentSession((session) => {
-                session.messages = session.messages.concat();
-              });
-              ChatControllerPool.remove(
-                session.id,
-                botMessage.id ?? messageIndex,
-              );
-
-              console.error("[Chat] failed ", error);
-            },
-            onController(controller) {
-              // collect controller for stop/retry
-              ChatControllerPool.addController(
-                session.id,
-                botMessage.id ?? messageIndex,
-                controller,
-              );
-            },
-          });
-        }
+            console.error("[Chat] failed ", error);
+          },
+          onController(controller) {
+            // collect controller for stop/retry
+            ChatControllerPool.addController(
+              session.id,
+              botMessage.id ?? messageIndex,
+              controller,
+            );
+          },
+        });
       },
 
       getMemoryPrompt() {
@@ -492,26 +406,22 @@ export const useChatStore = createPersistStore(
 
         // system prompts, to get close to OpenAI Web ChatGPT
         const shouldInjectSystemPrompts = modelConfig.enableInjectSystemPrompts;
-        let systemPrompts = shouldInjectSystemPrompts ? [] : [];
-
+        const systemPrompts = shouldInjectSystemPrompts
+          ? [
+              createMessage({
+                role: "system",
+                content: fillTemplateWith("", {
+                  ...modelConfig,
+                  template: DEFAULT_SYSTEM_TEMPLATE,
+                }),
+              }),
+            ]
+          : [];
         if (shouldInjectSystemPrompts) {
-          const model = modelConfig.model;
-          let systemTemplate = DEFAULT_SYSTEM_TEMPLATE;
-
-          if (model === "gpt-4-1106-preview" || model === "gpt-4-vision-preview") {
-            systemTemplate = systemTemplate.replace("{{knowledgeCutoff}}", "2023-04");
-          } else {
-            systemTemplate = systemTemplate.replace("{{knowledgeCutoff}}", "2021-09");
-          }
-
-          const systemPrompt = createMessage({
-            role: "system",
-            content: fillTemplateWith("", {
-              ...modelConfig,
-              template: systemTemplate,
-            }),
-          });
-          console.log("[Global System Prompt] ", systemPrompt.content);
+          console.log(
+            "[Global System Prompt] ",
+            systemPrompts.at(0)?.content ?? "empty",
+          );
         }
 
         // long term memory
