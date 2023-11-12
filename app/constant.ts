@@ -8,7 +8,7 @@ export const FETCH_COMMIT_URL = `https://api.github.com/repos/${OWNER}/${REPO}/c
 export const FETCH_TAG_URL = `https://api.github.com/repos/${OWNER}/${REPO}/tags?per_page=1`;
 export const RUNTIME_CONFIG_DOM = "danger-runtime-config";
 
-export const DEFAULT_CORS_HOST = "https://a.nextweb.fun";
+export const DEFAULT_CORS_HOST = "https://ab.nextweb.fun";
 export const DEFAULT_API_HOST = `${DEFAULT_CORS_HOST}/api/proxy`;
 export const OPENAI_BASE_URL = "https://api.openai.com";
 
@@ -18,21 +18,21 @@ export enum Path {
   Settings = "/settings",
   NewChat = "/new-chat",
   Masks = "/masks",
+  Plugins = "/plugins",
   Auth = "/auth",
 }
 
 export enum ApiPath {
   Cors = "/api/cors",
-  OpenAI = "/api/openai",
 }
 
 export enum SlotID {
   AppBody = "app-body",
-  CustomModel = "custom-model",
 }
 
 export enum FileName {
   Masks = "masks.json",
+  Plugins = "plugins.json",
   Prompts = "prompts.json",
 }
 
@@ -41,6 +41,7 @@ export enum StoreKey {
   Access = "access-control",
   Config = "app-config",
   Mask = "mask-store",
+  Plugin = "plugin-store",
   Prompt = "prompt-store",
   Update = "chat-update",
   Sync = "sync",
@@ -62,20 +63,11 @@ export const REQUEST_TIMEOUT_MS = 60000;
 
 export const EXPORT_MESSAGE_CLASS_NAME = "export-markdown";
 
-export enum ServiceProvider {
-  OpenAI = "OpenAI",
-  Azure = "Azure",
-}
-
 export const OpenaiPath = {
   ChatPath: "v1/chat/completions",
   UsagePath: "dashboard/billing/usage",
   SubsPath: "dashboard/billing/subscription",
   ListModelPath: "v1/models",
-};
-
-export const Azure = {
-  ExampleEndpoint: "https://{resource-url}/openai/deployments/{deploy-id}",
 };
 
 export const DEFAULT_INPUT_TEMPLATE = `{{input}}`; // input / time / model / lang
@@ -100,19 +92,11 @@ export const DEFAULT_MODELS = [
     available: true,
   },
   {
-    name: "gpt-4-0314",
-    available: true,
-  },
-  {
     name: "gpt-4-0613",
     available: true,
   },
   {
     name: "gpt-4-32k",
-    available: true,
-  },
-  {
-    name: "gpt-4-32k-0314",
     available: true,
   },
   {
@@ -129,10 +113,6 @@ export const DEFAULT_MODELS = [
   },
   {
     name: "gpt-3.5-turbo",
-    available: true,
-  },
-  {
-    name: "gpt-3.5-turbo-0301",
     available: true,
   },
   {

@@ -63,6 +63,8 @@ const cn = {
       Masks: "所有面具",
       Clear: "清除聊天",
       Settings: "对话设置",
+      EnablePlugins: "开启插件",
+      DisablePlugins: "关闭插件",
     },
     Rename: "重命名对话",
     Typing: "正在输入…",
@@ -258,6 +260,11 @@ const cn = {
       Title: "历史消息长度压缩阈值",
       SubTitle: "当未压缩的历史消息超过该值时，将进行压缩",
     },
+    Token: {
+      Title: "API Key",
+      SubTitle: "使用自己的 Key 可绕过密码访问限制",
+      Placeholder: "OpenAI API Key",
+    },
 
     Usage: {
       Title: "余额查询",
@@ -268,56 +275,19 @@ const cn = {
       Check: "重新检查",
       NoAccess: "输入 API Key 或访问密码查看余额",
     },
-
-    Access: {
-      AccessCode: {
-        Title: "访问密码",
-        SubTitle: "管理员已开启加密访问",
-        Placeholder: "请输入访问密码",
-      },
-      CustomEndpoint: {
-        Title: "自定义接口",
-        SubTitle: "是否使用自定义 Azure 或 OpenAI 服务",
-      },
-      Provider: {
-        Title: "模型服务商",
-        SubTitle: "切换不同的服务商",
-      },
-      OpenAI: {
-        ApiKey: {
-          Title: "API Key",
-          SubTitle: "使用自定义 OpenAI Key 绕过密码访问限制",
-          Placeholder: "OpenAI API Key",
-        },
-
-        Endpoint: {
-          Title: "接口地址",
-          SubTitle: "除默认地址外，必须包含 http(s)://",
-        },
-      },
-      Azure: {
-        ApiKey: {
-          Title: "接口密钥",
-          SubTitle: "使用自定义 Azure Key 绕过密码访问限制",
-          Placeholder: "Azure API Key",
-        },
-
-        Endpoint: {
-          Title: "接口地址",
-          SubTitle: "样例：",
-        },
-
-        ApiVerion: {
-          Title: "接口版本 (azure api version)",
-          SubTitle: "选择指定的部分版本",
-        },
-      },
-      CustomModel: {
-        Title: "自定义模型名",
-        SubTitle: "增加自定义模型可选项，使用英文逗号隔开",
-      },
+    AccessCode: {
+      Title: "访问密码",
+      SubTitle: "管理员已开启加密访问",
+      Placeholder: "请输入访问密码",
     },
-
+    Endpoint: {
+      Title: "接口地址",
+      SubTitle: "除默认地址外，必须包含 http(s)://",
+    },
+    CustomModel: {
+      Title: "自定义模型名",
+      SubTitle: "增加自定义模型可选项，使用英文逗号隔开",
+    },
     Model: "模型 (model)",
     Temperature: {
       Title: "随机性 (temperature)",
@@ -338,6 +308,20 @@ const cn = {
     FrequencyPenalty: {
       Title: "频率惩罚度 (frequency_penalty)",
       SubTitle: "值越大，越有可能降低重复字词",
+    },
+    Plugin: {
+      Enable: {
+        Title: "启用插件",
+        SubTitle: "启用插件调用功能",
+      },
+      MaxIteration: {
+        Title: "最大迭代数",
+        SubTitle: "插件调用最大迭代数",
+      },
+      ReturnIntermediateStep: {
+        Title: "返回中间步骤",
+        SubTitle: "是否返回插件调用的中间步骤",
+      },
     },
   },
   Store: {
@@ -369,6 +353,24 @@ const cn = {
   },
   Plugin: {
     Name: "插件",
+    Page: {
+      Title: "预设插件",
+      SubTitle: (count: number) => `${count} 个预设插件`,
+      Search: "搜索插件",
+      Create: "新建",
+    },
+    Item: {
+      View: "查看",
+      Edit: "编辑",
+      Delete: "删除",
+      DeleteConfirm: "确认删除？",
+    },
+    EditModal: {
+      Title: (readonly: boolean) =>
+        `编辑预设插件 ${readonly ? "（只读）" : ""}`,
+      Download: "下载预设",
+      Clone: "克隆预设",
+    },
   },
   FineTuned: {
     Sysmessage: "你是一个助手",

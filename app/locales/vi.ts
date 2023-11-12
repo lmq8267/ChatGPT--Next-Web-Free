@@ -123,7 +123,11 @@ const vi: PartialLocaleType = {
       Title: "Ngưỡng nén lịch sử tin nhắn",
       SubTitle: "Thực hiện nén nếu số lượng tin nhắn chưa nén vượt quá ngưỡng",
     },
-
+    Token: {
+      Title: "API Key",
+      SubTitle: "Sử dụng khóa của bạn để bỏ qua giới hạn mã truy cập",
+      Placeholder: "OpenAI API Key",
+    },
     Usage: {
       Title: "Hạn mức tài khoản",
       SubTitle(used: any, total: any) {
@@ -133,7 +137,11 @@ const vi: PartialLocaleType = {
       Check: "Kiểm tra",
       NoAccess: "Nhập API Key để kiểm tra hạn mức",
     },
-
+    AccessCode: {
+      Title: "Mã truy cập",
+      SubTitle: "Đã bật kiểm soát truy cập",
+      Placeholder: "Nhập mã truy cập",
+    },
     Model: "Mô hình",
     Temperature: {
       Title: "Tính ngẫu nhiên (temperature)",

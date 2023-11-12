@@ -65,6 +65,8 @@ const en: LocaleType = {
       Masks: "Masks",
       Clear: "Clear Context",
       Settings: "Settings",
+      EnablePlugins: "Enable Plugins",
+      DisablePlugins: "Disable Plugins",
     },
     Rename: "Rename Chat",
     Typing: "Typing…",
@@ -262,7 +264,11 @@ const en: LocaleType = {
       SubTitle:
         "Will compress if uncompressed messages length exceeds the value",
     },
-
+    Token: {
+      Title: "API Key",
+      SubTitle: "Use your key to ignore access code limit",
+      Placeholder: "OpenAI API Key",
+    },
     Usage: {
       Title: "Account Balance",
       SubTitle(used: any, total: any) {
@@ -272,55 +278,19 @@ const en: LocaleType = {
       Check: "Check",
       NoAccess: "Enter API Key to check balance",
     },
-    Access: {
-      AccessCode: {
-        Title: "Access Code",
-        SubTitle: "Access control Enabled",
-        Placeholder: "Enter Code",
-      },
-      CustomEndpoint: {
-        Title: "Custom Endpoint",
-        SubTitle: "Use custom Azure or OpenAI service",
-      },
-      Provider: {
-        Title: "Model Provider",
-        SubTitle: "Select Azure or OpenAI",
-      },
-      OpenAI: {
-        ApiKey: {
-          Title: "OpenAI API Key",
-          SubTitle: "User custom OpenAI Api Key",
-          Placeholder: "sk-xxx",
-        },
-
-        Endpoint: {
-          Title: "OpenAI Endpoint",
-          SubTitle: "Must starts with http(s):// or use /api/openai as default",
-        },
-      },
-      Azure: {
-        ApiKey: {
-          Title: "Azure Api Key",
-          SubTitle: "Check your api key from Azure console",
-          Placeholder: "Azure Api Key",
-        },
-
-        Endpoint: {
-          Title: "Azure Endpoint",
-          SubTitle: "Example: ",
-        },
-
-        ApiVerion: {
-          Title: "Azure Api Version",
-          SubTitle: "Check your api version from azure console",
-        },
-      },
-      CustomModel: {
-        Title: "Custom Models",
-        SubTitle: "Custom model options, seperated by comma",
-      },
+    AccessCode: {
+      Title: "Access Code",
+      SubTitle: "Access control enabled",
+      Placeholder: "Need Access Code",
     },
-
+    Endpoint: {
+      Title: "Endpoint",
+      SubTitle: "Custom endpoint must start with http(s)://",
+    },
+    CustomModel: {
+      Title: "Custom Models",
+      SubTitle: "Add extra model options, separate by comma",
+    },
     Model: "Model",
     Temperature: {
       Title: "Temperature",
@@ -343,6 +313,20 @@ const en: LocaleType = {
       Title: "Frequency Penalty",
       SubTitle:
         "A larger value decreasing the likelihood to repeat the same line",
+    },
+    Plugin: {
+      Enable: {
+        Title: "Enable Plugin",
+        SubTitle: "Enable plugin invocation",
+      },
+      MaxIteration: {
+        Title: "Max Iterations",
+        SubTitle: "Max of plugin iterations",
+      },
+      ReturnIntermediateStep: {
+        Title: "Return Intermediate Steps",
+        SubTitle: "Return Intermediate Steps",
+      },
     },
   },
   Store: {
@@ -375,6 +359,24 @@ const en: LocaleType = {
   },
   Plugin: {
     Name: "Plugin",
+    Page: {
+      Title: "Plugin Template",
+      SubTitle: (count: number) => `${count} plugin templates`,
+      Search: "Search Templates",
+      Create: "Create",
+    },
+    Item: {
+      View: "View",
+      Edit: "Edit",
+      Delete: "Delete",
+      DeleteConfirm: "Confirm to delete?",
+    },
+    EditModal: {
+      Title: (readonly: boolean) =>
+        `Edit Plugin Template ${readonly ? "(readonly)" : ""}`,
+      Download: "Download",
+      Clone: "Clone",
+    },
   },
   FineTuned: {
     Sysmessage: "You are an assistant that",
@@ -427,7 +429,7 @@ const en: LocaleType = {
     SubTitle: "Chat with the Soul behind the Mask",
     More: "Find More",
     NotShow: "Never Show Again",
-    ConfirmNoShow: "Confirm to disable？You can enable it in settings later.",
+    ConfirmNoShow: "Confirm to disable? You can enable it in settings later.",
   },
 
   UI: {
@@ -449,7 +451,7 @@ const en: LocaleType = {
   },
 
   URLCommand: {
-    Code: "Detected access code from url, confirm to apply? ",
+    Code: "Detected access code from url, confirm to apply?",
     Settings: "Detected settings from url, confirm to apply?",
   },
 };

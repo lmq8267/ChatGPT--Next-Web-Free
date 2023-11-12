@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { combine, persist } from "zustand/middleware";
+import { persist } from "zustand/middleware";
 import { Updater } from "../typing";
 import { deepClone } from "./clone";
 
@@ -23,42 +23,33 @@ type SetStoreState<T> = (
   replace?: boolean | undefined,
 ) => void;
 
-export function createPersistStore<T extends object, M>(
-  state: T,
+export function createPersistStore<T, M>(
+  defaultState: T,
   methods: (
     set: SetStoreState<T & MakeUpdater<T>>,
     get: () => T & MakeUpdater<T>,
   ) => M,
   persistOptions: SecondParam<typeof persist<T & M & MakeUpdater<T>>>,
 ) {
-  return create(
-    persist(
-      combine(
-        {
-          ...state,
-          lastUpdateTime: 0,
-        },
-        (set, get) => {
-          return {
-            ...methods(set, get as any),
+  return create<T & M & MakeUpdater<T>>()(
+    persist((set, get) => {
+      return {
+        ...defaultState,
+        ...methods(set as any, get),
 
-            markUpdate() {
-              set({ lastUpdateTime: Date.now() } as Partial<
-                T & M & MakeUpdater<T>
-              >);
-            },
-            update(updater) {
-              const state = deepClone(get());
-              updater(state);
-              set({
-                ...state,
-                lastUpdateTime: Date.now(),
-              });
-            },
-          } as M & MakeUpdater<T>;
+        lastUpdateTime: 0,
+        markUpdate() {
+          set({ lastUpdateTime: Date.now() } as Partial<
+            T & M & MakeUpdater<T>
+          >);
         },
-      ),
-      persistOptions as any,
-    ),
+        update(updater) {
+          const state = deepClone(get());
+          updater(state);
+          get().markUpdate();
+          set(state);
+        },
+      };
+    }, persistOptions),
   );
 }

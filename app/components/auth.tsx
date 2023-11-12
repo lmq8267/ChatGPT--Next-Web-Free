@@ -18,7 +18,7 @@ export function AuthPage() {
   const goChat = () => navigate(Path.Chat);
   const resetAccessCode = () => {
     accessStore.update((access) => {
-      access.openaiApiKey = "";
+      access.token = "";
       access.accessCode = "";
     });
   }; // Reset access code to empty string
@@ -56,11 +56,11 @@ export function AuthPage() {
           <input
             className={styles["auth-input"]}
             type="password"
-            placeholder={Locale.Settings.Access.OpenAI.ApiKey.Placeholder}
-            value={accessStore.openaiApiKey}
+            placeholder={Locale.Settings.Token.Placeholder}
+            value={accessStore.token}
             onChange={(e) => {
               accessStore.update(
-                (access) => (access.openaiApiKey = e.currentTarget.value),
+                (access) => (access.token = e.currentTarget.value),
               );
             }}
           />
