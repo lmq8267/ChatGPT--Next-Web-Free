@@ -46,10 +46,10 @@ export const DEFAULT_CONFIG = {
   models: DEFAULT_MODELS as any as LLMModel[],
 
   modelConfig: {
-    model: "gpt-3.5-turbo" as ModelType,
+    model: "gpt-3.5-turbo-1106" as ModelType,
     temperature: 0.5,
     top_p: 1,
-    max_tokens: 4000,
+    max_tokens: 8000,
     presence_penalty: 0,
     frequency_penalty: 0,
     sendMemory: true,
