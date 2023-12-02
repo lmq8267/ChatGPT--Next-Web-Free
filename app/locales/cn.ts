@@ -358,7 +358,7 @@ const cn = {
   },
   Store: {
     DefaultTopic: "新的聊天",
-    BotHello: "有什么可以帮你的吗",
+    BotHello: "你好！我是ChatGPT，一个由OpenAI训练的大型语言模型。我被设计成一个智能助手，可以回答各种问题，提供信息和帮助解决问题。我可以提供关于各种主题的知识和建议，包括技术、科学、历史、文化等。现在请告诉我您需要什么帮助，我会尽力回答您的问题！",
     Error: "出错了，稍后重试吧",
     Prompt: {
       History: (content: string) => "这是历史聊天总结作为前情提要：" + content,
