@@ -4,7 +4,7 @@ import { getServerSideConfig } from "@/app/config/server";
 import { BaseCallbackHandler } from "@langchain/core/callbacks/base";
 
 import { BufferMemory, ChatMessageHistory } from "langchain/memory";
-import { AgentExecutor } from "langchain/agents";
+import { AgentExecutor, AgentStep } from "langchain/agents";
 import { ACCESS_CODE_PREFIX, ServiceProvider } from "@/app/constant";
 
 // import * as langchainTools from "langchain/tools";
@@ -30,6 +30,9 @@ import {
 } from "@langchain/core/prompts";
 import { ChatOpenAI } from "@langchain/openai";
 import {
+  BaseMessage,
+  FunctionMessage,
+  ToolMessage,
   SystemMessage,
   HumanMessage,
   AIMessage,
@@ -222,7 +225,8 @@ export class AgentApi {
       const serverConfig = getServerSideConfig();
 
       // const reqBody: RequestBody = await req.json();
-      const isAzure = reqBody.isAzure || serverConfig.isAzure;
+      // ui set azure model provider
+      const isAzure = reqBody.isAzure;
       const authHeaderName = isAzure ? "api-key" : "Authorization";
       const authToken = req.headers.get(authHeaderName) ?? "";
       const token = authToken.trim().replaceAll("Bearer ", "").trim();
@@ -359,9 +363,10 @@ export class AgentApi {
         returnMessages: true,
         chatHistory: new ChatMessageHistory(pastMessages),
       });
+      const MEMORY_KEY = "chat_history";
       const prompt = ChatPromptTemplate.fromMessages([
-        new MessagesPlaceholder("chat_history"),
-        ["human", "{input}"],
+        new MessagesPlaceholder(MEMORY_KEY),
+        ["user", "{input}"],
         new MessagesPlaceholder("agent_scratchpad"),
       ]);
       const modelWithTools = llm.bind({
@@ -369,10 +374,13 @@ export class AgentApi {
       });
       const runnableAgent = RunnableSequence.from([
         {
-          input: (i: { input: string; steps: ToolsAgentStep[] }) => i.input,
-          agent_scratchpad: (i: { input: string; steps: ToolsAgentStep[] }) =>
-            formatToOpenAIToolMessages(i.steps),
-          chat_history: async (_: {
+          input: (i: { input: string; steps: ToolsAgentStep[] }) => {
+            return i.input;
+          },
+          agent_scratchpad: (i: { input: string; steps: ToolsAgentStep[] }) => {
+            return formatToOpenAIToolMessages(i.steps);
+          },
+          chat_history: async (i: {
             input: string;
             steps: ToolsAgentStep[];
           }) => {
@@ -391,12 +399,14 @@ export class AgentApi {
       });
 
       executor
-        .call(
+        .invoke(
           {
             input: reqBody.messages.slice(-1)[0].content,
             signal: this.controller.signal,
           },
-          [handler],
+          {
+            callbacks: [handler],
+          },
         )
         .catch((error) => {
           if (this.controller.signal.aborted) {
