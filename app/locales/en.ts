@@ -81,6 +81,8 @@ const en: LocaleType = {
       return inputHints + ", / to search prompts, : to use commands";
     },
     Send: "Send",
+    StartSpeak: "Talk",
+    StopSpeak: "Stop",
     Config: {
       Reset: "Reset to Default",
       SaveAs: "Save as Mask",
@@ -399,6 +401,12 @@ const en: LocaleType = {
       Speed: {
         Title: "Speed",
         SubTitle: "The speed of the generated audio",
+      },
+    },
+    STT: {
+      Enable: {
+        Title: "Enable STT",
+        SubTitle: "Enable Speech-to-Text",
       },
     },
   },
