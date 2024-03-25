@@ -91,6 +91,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import {
   CHAT_PAGE_SIZE,
+  DEFAULT_STT_ENGINE,
   LAST_INPUT_KEY,
   ModelProvider,
   Path,
@@ -108,6 +109,11 @@ import { useAllModels } from "../utils/hooks";
 import { ClientApi } from "../client/api";
 import { createTTSPlayer } from "../utils/audio";
 import { MultimodalContent } from "../client/api";
+import {
+  OpenAITranscriptionApi,
+  SpeechApi,
+  WebTranscriptionApi,
+} from "../utils/speech";
 
 const ttsPlayer = createTTSPlayer();
 
@@ -801,17 +807,21 @@ function _Chat() {
   };
 
   const [isListening, setIsListening] = useState(false);
-  const [recognition, setRecognition] = useState<any>(null);
-  const startListening = () => {
-    if (recognition) {
-      recognition.start();
+  const [isTranscription, setIsTranscription] = useState(false);
+  const [speechApi, setSpeechApi] = useState<any>(null);
+
+  const startListening = async () => {
+    if (speechApi) {
+      await speechApi.start();
       setIsListening(true);
     }
   };
 
-  const stopListening = () => {
-    if (recognition) {
-      recognition.stop();
+  const stopListening = async () => {
+    if (speechApi) {
+      if (config.sttConfig.engine !== DEFAULT_STT_ENGINE)
+        setIsTranscription(true);
+      await speechApi.stop();
       setIsListening(false);
     }
   };
@@ -819,6 +829,8 @@ function _Chat() {
   const onRecognitionEnd = (finalTranscript: string) => {
     console.log(finalTranscript);
     if (finalTranscript) setUserInput(finalTranscript);
+    if (config.sttConfig.engine !== DEFAULT_STT_ENGINE)
+      setIsTranscription(false);
   };
 
   const doSubmit = (userInput: string) => {
@@ -891,26 +903,15 @@ function _Chat() {
       }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-      const recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = true;
-      recognitionInstance.interimResults = true;
-      let lang = getSTTLang();
-      recognitionInstance.lang = lang;
-      recognitionInstance.onresult = (event: any) => {
-        const result = event.results[event.results.length - 1];
-        if (result.isFinal) {
-          if (!isListening) {
-            onRecognitionEnd(result[0].transcript);
-          }
-        }
-      };
-
-      setRecognition(recognitionInstance);
-    }
+    setSpeechApi(
+      config.sttConfig.engine === DEFAULT_STT_ENGINE
+        ? new WebTranscriptionApi((transcription) =>
+            onRecognitionEnd(transcription),
+          )
+        : new OpenAITranscriptionApi((transcription) =>
+            onRecognitionEnd(transcription),
+          ),
+    );
   }, []);
 
   // check if should send message
@@ -1700,7 +1701,10 @@ function _Chat() {
               }
               className={styles["chat-input-send"]}
               type="primary"
-              onClick={() => (isListening ? stopListening() : startListening())}
+              onClick={async () =>
+                isListening ? await stopListening() : await startListening()
+              }
+              loding={isTranscription}
             />
           ) : (
             <IconButton

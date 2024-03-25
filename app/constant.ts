@@ -80,6 +80,7 @@ export enum ModelProvider {
 export const OpenaiPath = {
   ChatPath: "v1/chat/completions",
   SpeechPath: "v1/audio/speech",
+  TranscriptionPath: "v1/audio/transcriptions",
   UsagePath: "dashboard/billing/usage",
   SubsPath: "dashboard/billing/subscription",
   ListModelPath: "v1/models",
@@ -132,6 +133,9 @@ export const DEFAULT_TTS_VOICES = [
   "nova",
   "shimmer",
 ];
+
+export const DEFAULT_STT_ENGINE = "WebAPI";
+export const DEFAULT_STT_ENGINES = ["WebAPI", "OpenAI Whisper"];
 
 export const DEFAULT_MODELS = [
   {
