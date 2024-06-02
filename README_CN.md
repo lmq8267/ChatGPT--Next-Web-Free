@@ -110,7 +110,7 @@ Azure Api 版本，你可以在这里找到：[Azure 文档](https://learn.micro
 
 Google Gemini Pro 密钥.
 
-### `GOOGLE_BASE_URL` (optional)
+### ~~`GOOGLE_BASE_URL` (optional)~~ `GEMINI_BASE_URL` (optional)
 
 Google Gemini Pro Api Url.
 
@@ -155,6 +155,9 @@ anthropic claude Api Url.
 > 如果你想先禁用所有模型，再启用指定模型，可以使用 `-all,+gpt-3.5-turbo`，则表示仅启用 `gpt-3.5-turbo`
 
 用来控制模型列表，使用 `+` 增加一个模型，使用 `-` 来隐藏一个模型，使用 `模型名=展示名` 来自定义模型的展示名，用英文逗号隔开。
+
+### `DEFAULT_INPUT_TEMPLATE` （可选）
+自定义默认的 template，用于初始化『设置』中的『用户输入预处理』配置项
 
 ## 开发
 

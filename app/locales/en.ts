@@ -304,7 +304,7 @@ const en: LocaleType = {
 
         Endpoint: {
           Title: "OpenAI Endpoint",
-          SubTitle: "Must starts with http(s):// or use /api/openai as default",
+          SubTitle: "Must start with http(s):// or use /api/openai as default",
         },
       },
       Azure: {
@@ -405,7 +405,7 @@ const en: LocaleType = {
     TTS: {
       Enable: {
         Title: "Enable TTS",
-        SubTitle: "Enable text-to-speech service based on OpenAI",
+        SubTitle: "Enable text-to-speech service",
       },
       Autoplay: {
         Title: "Enable Autoplay",
@@ -421,6 +421,7 @@ const en: LocaleType = {
         Title: "Speed",
         SubTitle: "The speed of the generated audio",
       },
+      Engine: "TTS Engine",
     },
     STT: {
       Enable: {
