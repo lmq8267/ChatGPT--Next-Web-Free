@@ -1,4 +1,12 @@
-import { ApiPath, Google, REQUEST_TIMEOUT_MS } from "@/app/constant";
+"use client";
+import {
+  ApiPath,
+  Alibaba,
+  ALIBABA_BASE_URL,
+  REQUEST_TIMEOUT_MS,
+} from "@/app/constant";
+import { useAccessStore, useAppConfig, useChatStore } from "@/app/store";
+
 import {
   AgentChatOptions,
   ChatOptions,
@@ -6,28 +14,49 @@ import {
   getHeaders,
   LLMApi,
   LLMModel,
-  LLMUsage,
+  MultimodalContent,
   SpeechOptions,
   TranscriptionOptions,
 } from "../api";
-import { useAccessStore, useAppConfig, useChatStore } from "@/app/store";
-import { getClientConfig } from "@/app/config/client";
-import { DEFAULT_API_HOST } from "@/app/constant";
 import Locale from "../../locales";
 import {
   EventStreamContentType,
   fetchEventSource,
 } from "@fortaine/fetch-event-source";
 import { prettyObject } from "@/app/utils/format";
-import {
-  getMessageTextContent,
-  getMessageImages,
-  isVisionModel,
-} from "@/app/utils";
-import { preProcessImageContent } from "@/app/utils/chat";
-import options from "cheerio/lib/options";
+import { getClientConfig } from "@/app/config/client";
+import { getMessageTextContent } from "@/app/utils";
 
-export class GeminiProApi implements LLMApi {
+export interface OpenAIListModelResponse {
+  object: string;
+  data: Array<{
+    id: string;
+    object: string;
+    root: string;
+  }>;
+}
+
+interface RequestInput {
+  messages: {
+    role: "system" | "user" | "assistant";
+    content: string | MultimodalContent[];
+  }[];
+}
+interface RequestParam {
+  result_format: string;
+  incremental_output?: boolean;
+  temperature: number;
+  repetition_penalty?: number;
+  top_p: number;
+  max_tokens?: number;
+}
+interface RequestPayload {
+  model: string;
+  input: RequestInput;
+  parameters: RequestParam;
+}
+
+export class QwenApi implements LLMApi {
   speech(options: SpeechOptions): Promise<ArrayBuffer> {
     throw new Error("Method not implemented.");
   }
@@ -44,93 +73,37 @@ export class GeminiProApi implements LLMApi {
     const accessStore = useAccessStore.getState();
 
     let baseUrl = "";
+
     if (accessStore.useCustomConfig) {
-      baseUrl = accessStore.googleUrl;
+      baseUrl = accessStore.alibabaUrl;
     }
 
     if (baseUrl.length === 0) {
       const isApp = !!getClientConfig()?.isApp;
-      baseUrl = isApp
-        ? DEFAULT_API_HOST + `/api/proxy/google?key=${accessStore.googleApiKey}`
-        : ApiPath.Google;
+      baseUrl = isApp ? ALIBABA_BASE_URL : ApiPath.Alibaba;
     }
+
     if (baseUrl.endsWith("/")) {
       baseUrl = baseUrl.slice(0, baseUrl.length - 1);
     }
-    if (!baseUrl.startsWith("http") && !baseUrl.startsWith(ApiPath.Google)) {
+    if (!baseUrl.startsWith("http") && !baseUrl.startsWith(ApiPath.Alibaba)) {
       baseUrl = "https://" + baseUrl;
     }
 
     console.log("[Proxy Endpoint] ", baseUrl, path);
 
-    let chatPath = [baseUrl, path].join("/");
-
-    chatPath += chatPath.includes("?") ? "&alt=sse" : "?alt=sse";
-    return chatPath;
+    return [baseUrl, path].join("/");
   }
+
   extractMessage(res: any) {
-    console.log("[Response] gemini-pro response: ", res);
-
-    return (
-      res?.candidates?.at(0)?.content?.parts.at(0)?.text ||
-      res?.error?.message ||
-      ""
-    );
+    return res?.output?.choices?.at(0)?.message?.content ?? "";
   }
-  async chat(options: ChatOptions): Promise<void> {
-    const apiClient = this;
-    let multimodal = false;
 
-    // try get base64image from local cache image_url
-    const _messages: ChatOptions["messages"] = [];
-    for (const v of options.messages) {
-      const content = await preProcessImageContent(v.content);
-      _messages.push({ role: v.role, content });
-    }
-    const messages = _messages.map((v) => {
-      let parts: any[] = [{ text: getMessageTextContent(v) }];
-      if (isVisionModel(options.config.model)) {
-        const images = getMessageImages(v);
-        if (images.length > 0) {
-          multimodal = true;
-          parts = parts.concat(
-            images.map((image) => {
-              const imageType = image.split(";")[0].split(":")[1];
-              const imageData = image.split(",")[1];
-              return {
-                inline_data: {
-                  mime_type: imageType,
-                  data: imageData,
-                },
-              };
-            }),
-          );
-        }
-      }
-      return {
-        role: v.role.replace("assistant", "model").replace("system", "user"),
-        parts: parts,
-      };
-    });
-
-    // google requires that role in neighboring messages must not be the same
-    for (let i = 0; i < messages.length - 1; ) {
-      // Check if current and next item both have the role "model"
-      if (messages[i].role === messages[i + 1].role) {
-        // Concatenate the 'parts' of the current and next item
-        messages[i].parts = messages[i].parts.concat(messages[i + 1].parts);
-        // Remove the next item
-        messages.splice(i + 1, 1);
-      } else {
-        // Move to the next item
-        i++;
-      }
-    }
-    // if (visionModel && messages.length > 1) {
-    //   options.onError?.(new Error("Multiturn chat is not enabled for models/gemini-pro-vision"));
-    // }
-
-    const accessStore = useAccessStore.getState();
+  async chat(options: ChatOptions) {
+    const messages = options.messages.map((v) => ({
+      role: v.role,
+      content: getMessageTextContent(v),
+    }));
 
     const modelConfig = {
       ...useAppConfig.getState().modelConfig,
@@ -139,49 +112,35 @@ export class GeminiProApi implements LLMApi {
         model: options.config.model,
       },
     };
-    const requestPayload = {
-      contents: messages,
-      generationConfig: {
-        // stopSequences: [
-        //   "Title"
-        // ],
-        temperature: modelConfig.temperature,
-        maxOutputTokens: modelConfig.max_tokens,
-        topP: modelConfig.top_p,
-        // "topK": modelConfig.top_k,
+
+    const shouldStream = !!options.config.stream;
+    const requestPayload: RequestPayload = {
+      model: modelConfig.model,
+      input: {
+        messages,
       },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: accessStore.googleSafetySettings,
-        },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH",
-          threshold: accessStore.googleSafetySettings,
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: accessStore.googleSafetySettings,
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: accessStore.googleSafetySettings,
-        },
-      ],
+      parameters: {
+        result_format: "message",
+        incremental_output: shouldStream,
+        temperature: modelConfig.temperature,
+        // max_tokens: modelConfig.max_tokens,
+        top_p: modelConfig.top_p === 1 ? 0.99 : modelConfig.top_p, // qwen top_p is should be < 1
+      },
     };
 
-    let shouldStream = !!options.config.stream;
     const controller = new AbortController();
     options.onController?.(controller);
-    try {
-      // https://github.com/google-gemini/cookbook/blob/main/quickstarts/rest/Streaming_REST.ipynb
-      const chatPath = this.path(Google.ChatPath(modelConfig.model));
 
+    try {
+      const chatPath = this.path(Alibaba.ChatPath);
       const chatPayload = {
         method: "POST",
         body: JSON.stringify(requestPayload),
         signal: controller.signal,
-        headers: getHeaders(),
+        headers: {
+          ...getHeaders(),
+          "X-DashScope-SSE": shouldStream ? "enable" : "disable",
+        },
       };
 
       // make a fetch request
@@ -195,18 +154,14 @@ export class GeminiProApi implements LLMApi {
         let remainText = "";
         let finished = false;
 
-        const finish = () => {
-          if (!finished) {
-            finished = true;
-            options.onFinish(responseText + remainText);
-          }
-        };
-
         // animate response to make it looks smooth
         function animateResponseText() {
           if (finished || controller.signal.aborted) {
             responseText += remainText;
-            finish();
+            console.log("[Response Animation] finished");
+            if (responseText?.length === 0) {
+              options.onError?.(new Error("empty response from server"));
+            }
             return;
           }
 
@@ -224,6 +179,13 @@ export class GeminiProApi implements LLMApi {
         // start animaion
         animateResponseText();
 
+        const finish = () => {
+          if (!finished) {
+            finished = true;
+            options.onFinish(responseText + remainText);
+          }
+        };
+
         controller.signal.onabort = finish;
 
         fetchEventSource(chatPath, {
@@ -232,7 +194,7 @@ export class GeminiProApi implements LLMApi {
             clearTimeout(requestTimeoutId);
             const contentType = res.headers.get("content-type");
             console.log(
-              "[Gemini] request response content type: ",
+              "[Alibaba] request response content type: ",
               contentType,
             );
 
@@ -275,16 +237,12 @@ export class GeminiProApi implements LLMApi {
             const text = msg.data;
             try {
               const json = JSON.parse(text);
-              const delta = apiClient.extractMessage(json);
-
+              const choices = json.output.choices as Array<{
+                message: { content: string };
+              }>;
+              const delta = choices[0]?.message?.content;
               if (delta) {
                 remainText += delta;
-              }
-
-              const blockReason = json?.promptFeedback?.blockReason;
-              if (blockReason) {
-                // being blocked
-                console.log(`[Google] [Safety Ratings] result:`, blockReason);
               }
             } catch (e) {
               console.error("[Request] parse error", text, msg);
@@ -304,17 +262,7 @@ export class GeminiProApi implements LLMApi {
         clearTimeout(requestTimeoutId);
 
         const resJson = await res.json();
-
-        if (resJson?.promptFeedback?.blockReason) {
-          // being blocked
-          options.onError?.(
-            new Error(
-              "Message is being blocked for reason: " +
-                resJson.promptFeedback.blockReason,
-            ),
-          );
-        }
-        const message = apiClient.extractMessage(resJson);
+        const message = this.extractMessage(resJson);
         options.onFinish(message);
       }
     } catch (e) {
@@ -322,10 +270,15 @@ export class GeminiProApi implements LLMApi {
       options.onError?.(e as Error);
     }
   }
-  usage(): Promise<LLMUsage> {
-    throw new Error("Method not implemented.");
+  async usage() {
+    return {
+      used: 0,
+      total: 0,
+    };
   }
+
   async models(): Promise<LLMModel[]> {
     return [];
   }
 }
+export { Alibaba };
