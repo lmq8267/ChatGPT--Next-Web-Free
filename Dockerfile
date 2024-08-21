@@ -19,6 +19,7 @@ ENV OPENAI_API_KEY=""
 ENV GOOGLE_API_KEY=""
 ENV CODE=""
 ENV NEXT_PUBLIC_ENABLE_NODEJS_PLUGIN=1
+ENV LANGCHAIN_CALLBACKS_BACKGROUND=true
 
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -35,6 +36,7 @@ ENV PROXY_URL=""
 ENV OPENAI_API_KEY=""
 ENV GOOGLE_API_KEY=""
 ENV CODE=""
+ENV LANGCHAIN_CALLBACKS_BACKGROUND=true
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
