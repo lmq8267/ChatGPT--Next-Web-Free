@@ -16,15 +16,9 @@ const nextConfig = {
 
     if (disableChunk) {
       config.plugins.push(
-        new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 }),
+        new webpack.optimize.LimitChunkCountPlugin({ maxChunks: 1 })
       );
     }
-
-    config.plugins.push(
-      new webpack.DefinePlugin({
-        'process.env.LANGCHAIN_CALLBACKS_BACKGROUND': JSON.stringify('true'),
-      })
-    );
 
     config.resolve.fallback = {
       child_process: false,
@@ -77,8 +71,10 @@ if (mode !== "export") {
       },
       {
         // https://{resource_name}.openai.azure.com/openai/deployments/{deploy_name}/chat/completions
-        source: "/api/proxy/azure/:resource_name/deployments/:deploy_name/:path*",
-        destination: "https://:resource_name.openai.azure.com/openai/deployments/:deploy_name/:path*",
+        source:
+          "/api/proxy/azure/:resource_name/deployments/:deploy_name/:path*",
+        destination:
+          "https://:resource_name.openai.azure.com/openai/deployments/:deploy_name/:path*",
       },
       {
         source: "/api/proxy/google/:path*",

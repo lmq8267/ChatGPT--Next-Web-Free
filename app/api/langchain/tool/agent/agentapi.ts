@@ -347,6 +347,7 @@ export class AgentApi {
     customTools: any[],
   ) {
     try {
+      process.env.LANGCHAIN_CALLBACKS_BACKGROUND = "true";
       let useTools = reqBody.useTools ?? [];
       const serverConfig = getServerSideConfig();
 
@@ -481,7 +482,7 @@ export class AgentApi {
         tools,
         maxIterations: reqBody.maxIterations,
       });
-      await agentExecutor
+      agentExecutor
         .invoke(
           {
             input: lastHumanMessage,
