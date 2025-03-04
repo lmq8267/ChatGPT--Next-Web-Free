@@ -30,6 +30,8 @@
 >
 > 由于 Anthropic 不提供嵌入模型，请添加 RAG 功能的 ollama 嵌入模型配置，如不配置，**WebBrowser** 和 **PDFBrowser** 插件将无法使用。
 
+![cover](./docs/images/thinking-example.png)
+
 ![cover](./docs/images/rag-example-2.jpg)
 
 ![plugin-example](./docs/images/plugin-example.png)
@@ -40,7 +42,17 @@
 
 ## 主要功能
 
+- 支持**深度思考**
+  
+- 支持**通用搜索**（非插件模型支持联网搜索）
+  
+  - 环境变量：
+    - `TAVILY_API_KEY`
+  
+  - 申请地址：https://tavily.com
+  
 - RAG 功能
+
   - 配置请参考文档 [RAG 功能配置说明](./docs/rag-cn.md)
 
 - 除插件工具外，与原项目保持一致 [ChatGPT-Next-Web 主要功能](https://github.com/Yidadaa/ChatGPT-Next-Web#主要功能)
@@ -55,43 +67,43 @@
 - 支持 GPT-4V(视觉) 模型
   - ~~需要配置对象存储服务，请参考 [对象存储服务配置指南](./docs/s3-oss.md) 配置~~
   - 已同步上游仓库视觉模型调用方式（压缩图片），这里还是会有撑爆 LocalStorage 的风险 https://github.com/Hk-Gosuto/ChatGPT-Next-Web-LangChain/issues/77#issuecomment-1846410078 ，后面如果出现类似问题会再适配对象存储来存储图像。
-  
+
 - 基于 [LangChain](https://github.com/hwchase17/langchainjs) 实现的插件功能，目前支持以下插件，未来会添加更多
   - 搜索（优先级：`GoogleCustomSearch > SerpAPI > BingSerpAPI > ChooseSearchEngine > DuckDuckGo`）
-  
+
     - [GoogleCustomSearch](https://api.js.langchain.com/classes/langchain_tools.GoogleCustomSearch.html)
-  
+
       - 环境变量：
         - `GOOGLE_PLUGIN_API_PROXY_PREFIX` 与 `DDG_API_PROXY_PREFIX` 变量使用方法一致
         - ~~`GOOGLE_API_KEY`~~ `GOOGLE_SEARCH_API_KEY`
         - `GOOGLE_CSE_ID`
       - 申请参考：[说明](https://stackoverflow.com/questions/37083058/programmatically-searching-google-in-python-using-custom-search)
-  
+
     - [SerpAPI](https://api.js.langchain.com/classes/langchain_tools.SerpAPI.html)
-  
+
       - 环境变量：`SERPAPI_API_KEY`
       - 申请地址：[SerpApi: Google Search API](https://serpapi.com/)
-  
+
     - [BingSerpAPI](https://api.js.langchain.com/classes/langchain_tools.BingSerpAPI.html)
-  
+
       - 环境变量：`BING_SEARCH_API_KEY`
       - 申请地址：[Web Search API | Microsoft Bing](https://www.microsoft.com/en-us/bing/apis/bing-web-search-api)
-  
+
     - ChooseSearchEngine（作者：[hang666](https://github.com/hang666)）
-  
+
       - 环境变量：
         - `CHOOSE_SEARCH_ENGINE`
         - `GOOGLE_PLUGIN_API_PROXY_PREFIX` 与 `DDG_API_PROXY_PREFIX` 变量使用方法一致，只会对 google 进行代理
-  
+
         可选项如下：
-  
+
         - google
         - baidu
-  
+
       - 说明：此项为直连搜索引擎，免去api试用量小的烦恼，但可能因为网络问题导致无法使用
-  
+
       - ⚠ 注意：已知在 vercel 环境下会出现调用不稳定的情况 https://github.com/Hk-Gosuto/ChatGPT-Next-Web-LangChain/issues/89#issuecomment-1868887904
-  
+
     - DuckDuckGo
 
       - 环境变量：`DDG_API_PROXY_PREFIX`
@@ -99,7 +111,7 @@
         配置后将在 DuckDuckGo 插件相关接口前拼接配置内容，如：`DDG_API_PROXY_PREFIX=https://example.com/` 则最终请求为：`https://example.com/https://duckduckgo.com`
 
         可以结合类似 1234567Yang/cf-proxy-ex 这类代理项目来实现 DuckDuckGo 插件相关接口的代理
-  
+
   - 计算
     - [Calculator](https://api.js.langchain.com/classes/langchain_tools_calculator.Calculator.html)
     - [WolframAlpha](https://api.js.langchain.com/classes/langchain_tools.WolframAlphaTool.html)
@@ -112,7 +124,7 @@
     - PDFBrowser
       - 需要使用 `text-embedding-ada-002` 嵌入模型
       - ⚠ 仅在非 vercel 环境部署时可用 ⚠
-  
+
   - 其它
     - [Wiki](https://api.js.langchain.com/classes/langchain_tools.WikipediaQueryRun.html)
     - DALL-E 3
@@ -132,7 +144,7 @@
         - 需提前部署 [bilivid-metaprocess-server](https://github.com/fred913/bilivid-metaprocess-server) 并配置环境变量 `BILIVID_METAPROCESS_SERVER_ADDRESS`
       - bilibili视频总结
         - 需配置环境变量 `BILIBILI_COOKIES`
-  
+
 - 支持 gemini-pro, gemini-pro-vision 模型
   - 以下功能目前还不支持
     - **插件功能**
@@ -144,7 +156,7 @@
   - ⚠ gemini-pro-vision 注意事项 https://github.com/Hk-Gosuto/ChatGPT-Next-Web-LangChain/issues/203 ：
     - 每次对话必须包含图像数据，不然会出现 `Add an image to use models/gemini-pro-vision, or switch your model to a text model.` 错误。
     - 只支持单轮对话，多轮对话会出现 `Multiturn chat is not enabled for models/gemini-pro-vision` 错误。
-  
+
 - 非 Vercel 运行环境下支持本地存储
 
   - 如果你的程序运行在非 Vercel 环境，不配置 `S3_ENDPOINT` 和 `R2_ACCOUNT_ID` 参数，默认上传的文件将存储在 `/app/uploads` 文件夹中
