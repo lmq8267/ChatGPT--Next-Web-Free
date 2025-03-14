@@ -606,6 +606,8 @@ const en: LocaleType = {
       Engine: "TTS Engine",
     },
     STT: {
+      StartListening: "Start Listening",
+      StopListening: "Stop Listening",
       Enable: {
         Title: "Enable STT",
         SubTitle: "Enable Speech-to-Text",
