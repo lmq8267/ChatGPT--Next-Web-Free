@@ -451,7 +451,10 @@ export function isClaudeThinkingModel(modelName: string) {
 }
 
 export function isImageGenerationModel(modelName: string) {
-  const specialModels = ["gemini-2.0-flash-exp"];
+  const specialModels = [
+    "gemini-2.0-flash-exp",
+    "gemini-2.5-flash-image-preview",
+  ];
   return specialModels.some((keyword) => modelName === keyword);
 }
 
