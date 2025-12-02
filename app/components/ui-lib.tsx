@@ -1044,6 +1044,8 @@ export function ModelSelectorModal(props: ModelSelectorModalProps) {
 
   // 检查提供商是否有有效的API密钥
   const isProviderValid = (providerName: string) => {
+    if (accessStore.isUseRemoteModels) return true;
+
     try {
       switch (providerName) {
         case "OpenAI":
@@ -1091,6 +1093,8 @@ export function ModelSelectorModal(props: ModelSelectorModalProps) {
 
   // 过滤出可用且提供商有效API密钥的模型
   const availableModels = allModels.filter((v) => {
+    if (accessStore.isUseRemoteModels) return true;
+
     if (!v.available) return false;
 
     const providerName = v.provider?.providerName;
@@ -1104,8 +1108,6 @@ export function ModelSelectorModal(props: ModelSelectorModalProps) {
     // 处理模型名中包含@的情况，如google@gemini-2.5-pro
     let providerName = model.provider?.providerName;
     let modelName = model.name;
-
-    console.log("model.provider", model.provider);
 
     if (model.name.includes("@")) {
       const parts = model.name.split("@");
@@ -1122,9 +1124,6 @@ export function ModelSelectorModal(props: ModelSelectorModalProps) {
         modelName = parts[1];
       }
     }
-
-    console.log("providerName", providerName);
-    console.log("modelName", modelName);
 
     return {
       title: modelName,
@@ -1150,7 +1149,6 @@ export function ModelSelectorModal(props: ModelSelectorModalProps) {
     if (icon) {
       PROVIDER_ICON_CACHE[providerName] = icon;
     }
-    return icon;
     return icon;
   }, []);
 
